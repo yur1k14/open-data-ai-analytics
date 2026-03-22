@@ -62,28 +62,28 @@ jobs:
         run: |
           mkdir -p data/raw src/reports/figures src/reports/data_research artifacts/${{ matrix.module }}
           
+          python src/data_load.py
+          
           if [ "${{ matrix.module }}" = "data_load" ]; then
-            python src/data_load.py
-            cp -r data/raw artifacts/${{ matrix.module }}/ || true
+            # Копіюємо сам датасет як результат завантаження
+            cp data/raw/dataset.xls artifacts/${{ matrix.module }}/ || true
           fi
-
+          
           if [ "${{ matrix.module }}" = "data_quality_analysis" ]; then
-            python src/data_load.py
             python src/data_quality_analysis.py
-            cp src/reports/data_quality_report.txt artifacts/${{ matrix.module }}/ || true
+            # Перевіряємо, чи файл у корені src/ або у src/reports/
+            cp src/reports/data_quality_report.txt artifacts/${{ matrix.module }}/ || cp data_quality_report.txt artifacts/${{ matrix.module }}/ || true
           fi
-
+          
           if [ "${{ matrix.module }}" = "data_research" ]; then
-            python src/data_load.py
             python src/data_research.py
-            cp -r src/reports/data_research artifacts/${{ matrix.module }}/ || true
+            cp -r src/reports/data_research/* artifacts/${{ matrix.module }}/ || true
           fi
-
+          
           if [ "${{ matrix.module }}" = "visualization" ]; then
-            python src/data_load.py
-            python src/data_research.py
+            python src/data_research.py || true
             python src/visualization.py
-            cp -r src/reports/figures artifacts/${{ matrix.module }}/ || true
+            cp -r src/reports/figures/* artifacts/${{ matrix.module }}/ || true
           fi
 
       - name: Upload artifacts
