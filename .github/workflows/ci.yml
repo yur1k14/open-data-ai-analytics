@@ -65,24 +65,30 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
         run: |
           echo "Running ${{ matrix.module }}"
+          # Створюємо базові папки, щоб скрипти не падали через їх відсутність
+          mkdir -p data/raw reports/figures reports/data_research artifacts/${{ matrix.module }}
+          
           if [ "${{ matrix.module }}" = "data_load" ]; then
-            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/data_load.py
             cp -r data/raw artifacts/${{ matrix.module }}/ || true
           fi
+          
           if [ "${{ matrix.module }}" = "data_quality_analysis" ]; then
-            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
-            python src/data_quality_analysis.py >> artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/data_load.py
+            python src/data_quality_analysis.py
             cp reports/data_quality_report.txt artifacts/${{ matrix.module }}/ || true
           fi
+          
           if [ "${{ matrix.module }}" = "data_research" ]; then
-            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
-            python src/data_research.py >> artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/data_load.py
+            python src/data_research.py
             cp -r reports/data_research artifacts/${{ matrix.module }}/ || true
           fi
+          
           if [ "${{ matrix.module }}" = "visualization" ]; then
-            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
-            python src/data_research.py >> artifacts/${{ matrix.module }}/run.log 2>&1
-            python src/visualization.py >> artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/data_load.py
+            python src/data_research.py
+            python src/visualization.py
             cp -r reports/figures artifacts/${{ matrix.module }}/ || true
           fi
 
