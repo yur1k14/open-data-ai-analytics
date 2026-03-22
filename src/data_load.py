@@ -25,5 +25,5 @@ def load_data(FILE_PATH):
         return None
 
 if __name__ == "__main__":
-    FILE_PATH = "../data/raw/dataset.xls"
+    FILE_PATH = "data/raw/dataset.xls"
     load_data(FILE_PATH)

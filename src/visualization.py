@@ -57,7 +57,7 @@ def create_visualizations(df):
 
 if __name__ == "__main__":
     from data_load import load_data
-    FILE_PATH = "../data/raw/dataset.xls"
+    FILE_PATH = "data/raw/dataset.xls"
 
     try:
         # Спроба завантаження через створений раніше модуль

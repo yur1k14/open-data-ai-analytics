@@ -63,7 +63,7 @@ def research_function(df):
         print("Висновок: Найвище значення ВВП зафіксовано у 2028 році.")
 
 if __name__ == "__main__":
-    FILE_PATH = "../data/raw/dataset.xls"
+    FILE_PATH = "data/raw/dataset.xls"
 
     try:
         from data_load import load_data

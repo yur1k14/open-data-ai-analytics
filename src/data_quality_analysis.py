@@ -19,7 +19,7 @@ def check_data_quality(df):
     print(df.dtypes)
 
 if __name__ == "__main__":
-    FILE_PATH = "../data/raw/dataset.xls"
+    FILE_PATH = "data/raw/dataset.xls"
 
     try:
         from data_load import load_data

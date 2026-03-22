@@ -65,7 +65,6 @@ jobs:
         if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
         run: |
           echo "Running ${{ matrix.module }}"
-          # Створюємо базові папки, щоб скрипти не падали через їх відсутність
           mkdir -p data/raw reports/figures reports/data_research artifacts/${{ matrix.module }}
           
           if [ "${{ matrix.module }}" = "data_load" ]; then
