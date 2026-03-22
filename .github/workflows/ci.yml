@@ -1,0 +1,120 @@
+name: CI/CD Project Pipeline
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - 'src/**'
+      - 'data/**'
+      - 'requirements.txt'
+      - '.github/workflows/ci.yml'
+
+  pull_request:
+    branches: ["main"]
+    paths:
+      - 'src/**'
+      - 'data/**'
+
+  workflow_dispatch:
+    inputs:
+      module:
+        description: "Choose module to run"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - data_load
+          - data_quality_analysis
+          - data_research
+          - visualization
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  run-modules:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        module: [data_load, data_quality_analysis, data_research, visualization]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
+        run: |
+          python -m pip install --upgrade pip
+          pip install pandas matplotlib scikit-learn
+
+      - name: Create artifact directory
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
+        run: mkdir -p artifacts/${{ matrix.module }}
+
+      - name: Run selected module
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
+        run: |
+          echo "Running ${{ matrix.module }}"
+          if [ "${{ matrix.module }}" = "data_load" ]; then
+            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
+            cp -r data/raw artifacts/${{ matrix.module }}/ || true
+          fi
+          if [ "${{ matrix.module }}" = "data_quality_analysis" ]; then
+            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/data_quality_analysis.py >> artifacts/${{ matrix.module }}/run.log 2>&1
+            cp reports/data_quality_report.txt artifacts/${{ matrix.module }}/ || true
+          fi
+          if [ "${{ matrix.module }}" = "data_research" ]; then
+            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/data_research.py >> artifacts/${{ matrix.module }}/run.log 2>&1
+            cp -r reports/data_research artifacts/${{ matrix.module }}/ || true
+          fi
+          if [ "${{ matrix.module }}" = "visualization" ]; then
+            python src/data_load.py > artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/data_research.py >> artifacts/${{ matrix.module }}/run.log 2>&1
+            python src/visualization.py >> artifacts/${{ matrix.module }}/run.log 2>&1
+            cp -r reports/figures artifacts/${{ matrix.module }}/ || true
+          fi
+
+      - name: Upload artifacts
+        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: artifacts-${{ matrix.module }}
+          path: artifacts/${{ matrix.module }}
+
+  deploy-pages:
+    needs: run-modules
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download visualization artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: artifacts-visualization
+          path: ./public
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload to GitHub Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
