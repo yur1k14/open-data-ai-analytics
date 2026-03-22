@@ -1,0 +1,29 @@
+name: CI (Self-hosted macOS)
+
+on:
+  workflow_dispatch:
+
+jobs:
+  mac-job:
+    runs-on: self-hosted
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: System Info
+        run: |
+          echo "Running on my Mac!"
+          sw_vers # Покаже версію macOS
+          python3 --version
+
+      - name: Run Visualization
+        run: |
+          mkdir -p artifacts/selfhosted
+          # На маку зазвичай використовується python3
+          python3 src/visualization.py > artifacts/selfhosted/mac_log.txt 2>&1 || true
+
+      - name: Upload Local Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-results
+          path: artifacts/selfhosted/
