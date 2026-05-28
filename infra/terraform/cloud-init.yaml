@@ -1,0 +1,31 @@
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - git
+
+runcmd:
+  # 1. Встановлення офіційного Docker Engine та Docker Compose Plugin
+  - mkdir -p /etc/apt/keyrings
+  - curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  - echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | tee /etc/apt/sources.list.d/docker.list > /dev/null
+  - apt-get update -y
+  - apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  # 2. Запуск та активація Docker у системі
+  - systemctl start docker
+  - systemctl enable docker
+
+  # 3. Клонування твого актуального GitHub репозиторію
+  - mkdir -p /home/azureuser/app
+  - git clone https://github.com/yur1k14/open-data-ai-analytics.git /home/azureuser/app/open-data-ai-analytics
+
+  # 4. Запуск мікросервісного Docker Workspace у фоновому режимі
+  - cd /home/azureuser/app/open-data-ai-analytics
+  - docker compose up --build -d
