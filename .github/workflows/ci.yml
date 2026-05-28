@@ -6,7 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'data/**'
-      - 'requirements.txt'
+      - '../../src/requirements.txt'
       - '.github/workflows/ci.yml'
 
   pull_request:

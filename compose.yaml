@@ -1,0 +1,66 @@
+services:
+  data_load:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: python data_load.py
+    volumes:
+      - ./data:/app/data
+      - shared_db:/app/db
+
+  quality_analysis:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: python data_quality_analysis.py
+    volumes:
+      - shared_db:/app/db
+      - shared_reports:/app/reports
+    depends_on:
+      data_load:
+        condition: service_completed_successfully
+
+  research:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: python data_research.py
+    volumes:
+      - shared_db:/app/db
+      - shared_reports:/app/reports
+    depends_on:
+      data_load:
+        condition: service_completed_successfully
+
+  visualization:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: python visualization.py
+    volumes:
+      - shared_db:/app/db
+      - shared_reports:/app/reports
+    depends_on:
+      data_load:
+        condition: service_completed_successfully
+
+  web:
+    build:
+      context: ./src
+      dockerfile: Dockerfile
+    command: streamlit run web.py --server.port=8501 --server.address=0.0.0.0
+    ports:
+      - "8501:8501"
+    volumes:
+      - shared_reports:/app/reports
+    depends_on:
+      quality_analysis:
+        condition: service_completed_successfully
+      research:
+        condition: service_completed_successfully
+      visualization:
+        condition: service_completed_successfully
+
+volumes:
+  shared_db:
+  shared_reports:
