@@ -54,21 +54,19 @@ jobs:
       - name: Verify Container Statuses and Metrics
         run: |
           # Виводимо список усіх контейнерів та їхніх статусів для звіту
-          docker ps -a
+          docker compose ps -a
           
           echo "=== Перевірка успішності виконання сервісів ==="
           
-          # 1. Перевіряємо, чи модуль завантаження даних завершився успішно (код 0)
-          DATA_LOAD_EXIT=$(docker inspect -f '{{.State.ExitCode}}' $(docker compose ps -q data_load))
-          if [ "$DATA_LOAD_EXIT" != "0" ]; then
-            echo "Помилка: Сервіс data_load завершився з кодом $DATA_LOAD_EXIT"
+          # 1. Перевіряємо, чи завершився сервіс завантаження даних із кодом 0 (exited з успіхом)
+          if ! docker compose ps data_load | grep -q "exited (0)"; then
+            echo "Помилка: Сервіс data_load не завершився успішно або впав!"
             exit 1
           fi
           echo "Сервіс data_load відпрацював успішно."
 
           # 2. Перевіряємо, чи активний та функціонує веб-інтерфейс Streamlit
-          WEB_RUNNING=$(docker inspect -f '{{.State.Running}}' $(docker compose ps -q web))
-          if [ "$WEB_RUNNING" != "true" ]; then
+          if ! docker compose ps web | grep -q "running"; then
             echo "Помилка: Веб-сервіс Streamlit не запустився або впав!"
             exit 1
           fi
