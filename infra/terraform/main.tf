@@ -48,38 +48,38 @@ resource "azurerm_network_security_group" "nsg" {
   resource_group_name = azurerm_resource_group.rg.name
 
   security_rule {
-    name                       = "SSH"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+ name                       = "SSH"
+ priority                   = 1001
+ direction                  = "Inbound"
+ access                     = "Allow"
+ protocol                   = "Tcp"
+ source_port_range          = "*"
+ destination_port_range     = "22"
+ source_address_prefix      = "*"
+ destination_address_prefix = "*"
+ }
 
-  security_rule {
-    name                       = "Streamlit"
-    priority                   = 1002
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "8501"
-    source_address_prefix      = "*"
-    destination_address_prefix = "*"
-  }
+ security_rule {
+ name                       = "ArgoCD"
+ priority                   = 1002
+ direction                  = "Inbound"
+ access                     = "Allow"
+ protocol                   = "Tcp"
+ source_port_range          = "*"
+ destination_port_range     = "30080"
+ source_address_prefix      = "*"
+ destination_address_prefix = "*"
+ }
 
-security_rule {
-    name                       = "Prometheus"
-    priority                   = 1003
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "9090"
-    source_address_prefix      = "*"
+ security_rule {
+ name                       = "WebApp"
+ priority                   = 1003
+ direction                  = "Inbound"
+ access                     = "Allow"
+ protocol                   = "Tcp"
+ source_port_range          = "*"
+ destination_port_range     = "30081"
+ source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
@@ -91,6 +91,18 @@ security_rule {
     protocol                   = "Tcp"
     source_port_range          = "*"
     destination_port_range     = "3000"
+    source_address_prefix      = "*"
+    destination_address_prefix = "*"
+  }
+
+  security_rule {
+    name                       = "Prometheus"
+    priority                   = 1005
+    direction                  = "Inbound"
+    access                     = "Allow"
+    protocol                   = "Tcp"
+    source_port_range          = "*"
+    destination_port_range     = "9090"
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
