@@ -6,7 +6,7 @@ on:
     paths:
       - 'src/**'
       - 'data/**'
-      - '../../src/requirements.txt'
+      - 'compose.yaml'
       - '.github/workflows/ci.yml'
 
   pull_request:
@@ -31,92 +31,51 @@ on:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 jobs:
-  run-modules:
+  build-and-test:
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        module: [data_load, data_quality_analysis, data_research, visualization]
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
 
-      - name: Install dependencies
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
+      - name: Run Docker Workspace
         run: |
-          python -m pip install --upgrade pip
-          pip install pandas matplotlib scikit-learn xlrd
+          # Запускаємо мультиконтейнерний стек у фоновому режимі
+          docker compose up --build -d
+          
+          # Даємо час (20 секунд) батч-контейнерам послідовно відпрацювати розрахунки
+          sleep 20
 
-      - name: Run selected module
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
+      - name: Verify Container Statuses and Metrics
         run: |
-          mkdir -p data/raw src/reports/figures src/reports/data_research artifacts/${{ matrix.module }}
+          # Виводимо список усіх контейнерів та їхніх статусів для звіту
+          docker ps -a
           
-          python src/data_load.py
+          echo "=== Перевірка успішності виконання сервісів ==="
           
-          if [ "${{ matrix.module }}" = "data_load" ]; then
-            # Копіюємо сам датасет як результат завантаження
-            cp data/raw/dataset.xls artifacts/${{ matrix.module }}/ || true
+          # 1. Перевіряємо, чи модуль завантаження даних завершився успішно (код 0)
+          DATA_LOAD_EXIT=$(docker inspect -f '{{.State.ExitCode}}' $(docker compose ps -q data_load))
+          if [ "$DATA_LOAD_EXIT" != "0" ]; then
+            echo "Помилка: Сервіс data_load завершився з кодом $DATA_LOAD_EXIT"
+            exit 1
           fi
-          
-          if [ "${{ matrix.module }}" = "data_quality_analysis" ]; then
-            python src/data_quality_analysis.py
-            # Перевіряємо, чи файл у корені src/ або у src/reports/
-            cp src/reports/data_quality_report.txt artifacts/${{ matrix.module }}/ || cp data_quality_report.txt artifacts/${{ matrix.module }}/ || true
+          echo "Сервіс data_load відпрацював успішно."
+
+          # 2. Перевіряємо, чи активний та функціонує веб-інтерфейс Streamlit
+          WEB_RUNNING=$(docker inspect -f '{{.State.Running}}' $(docker compose ps -q web))
+          if [ "$WEB_RUNNING" != "true" ]; then
+            echo "Помилка: Веб-сервіс Streamlit не запустився або впав!"
+            exit 1
           fi
-          
-          if [ "${{ matrix.module }}" = "data_research" ]; then
-            python src/data_research.py
-            cp -r src/reports/data_research/* artifacts/${{ matrix.module }}/ || true
-          fi
-          
-          if [ "${{ matrix.module }}" = "visualization" ]; then
-            python src/data_research.py || true
-            python src/visualization.py
-            cp -r src/reports/figures/* artifacts/${{ matrix.module }}/ || true
-          fi
+          echo "Веб-інтерфейс Streamlit успішно запущено та працює в мережі."
 
-      - name: Upload artifacts
-        if: ${{ github.event_name != 'workflow_dispatch' || github.event.inputs.module == 'all' || github.event.inputs.module == matrix.module }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: artifacts-${{ matrix.module }}
-          path: artifacts/${{ matrix.module }}
-          if-no-files-found: warn
-
-  deploy-pages:
-    needs: run-modules
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Download visualization artifacts
-        uses: actions/download-artifact@v4
-        with:
-          name: artifacts-visualization
-          path: ./public
-        continue-on-error: true
-
-      - name: Setup Pages
-        uses: actions/configure-pages@v4
-
-      - name: Upload to GitHub Pages
-        uses: actions/upload-pages-artifact@v3
-        with:
-          path: './public'
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+      - name: Shutdown Workspace and Clean Volumes
+        if: always()
+        run: |
+          # Зупиняємо інфраструктуру конвеєра та очищуємо тимчасові томи даних
+          docker compose down --volumes
