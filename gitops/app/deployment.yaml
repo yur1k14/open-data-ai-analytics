@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: macro-web-deployment
+  namespace: macro-analytics
+  labels:
+    app: macro-web
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: macro-web
+  template:
+    metadata:
+      labels:
+        app: macro-web
+    spec:
+      containers:
+        - name: web-app
+          image: yur1k14/open-data-ai-analytics-web:latest
+          ports:
+            - containerPort: 8501
+          env:
+            - name: ENVIRONMENT
+              value: "Production-Cloud-GitOps"
