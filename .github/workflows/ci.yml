@@ -58,15 +58,26 @@ jobs:
           
           echo "=== Перевірка успішності виконання сервісів ==="
           
-          # Перевіряємо статус без урахування регістру літер (-i)
-          if ! docker compose ps data_load | grep -qi "exited (0)"; then
-            echo "Помилка: Сервіс data_load не завершився успішно або впав!"
+          # 1. Перевіряємо сервіс data_load через офіційний фільтр статусів Docker Compose
+          # Якщо контейнер завершився успішно, він з'явиться у фільтрі status=exited
+          if [ -z "$(docker compose ps data_load --status=exited)" ] && [ -z "$(docker compose ps data_load --status=running)" ]; then
+            echo "Помилка: Сервіс data_load не знайдено в системі!"
             exit 1
           fi
-          echo "Сервіс data_load відпрацював успішно."
+          
+          # Перевіряємо безпосередньо код завершення (ExitCode) контейнера
+          # Це найнадійніший спосіб у Linux конвеєрах
+          CONTAINER_ID=$(docker compose ps -q data_load)
+          EXIT_CODE=$(docker inspect -f '{{.State.ExitCode}}' $CONTAINER_ID)
+          
+          if [ "$EXIT_CODE" != "0" ]; then
+            echo "Помилка: Сервіс data_load завершився невдало з кодом $EXIT_CODE"
+            exit 1
+          fi
+          echo "Сервіс data_load відпрацював успішно з кодом 0."
 
-          # Перевіряємо статус веб-інтерфейсу без урахування регістру літер (-i)
-          if ! docker compose ps web | grep -qi "running"; then
+          # 2. Перевіряємо, чи активний та функціонує веб-інтерфейс Streamlit
+          if [ -z "$(docker compose ps web --status=running)" ]; then
             echo "Помилка: Web-сервіс Streamlit не запустився або впав!"
             exit 1
           fi
