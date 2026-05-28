@@ -58,15 +58,15 @@ jobs:
           
           echo "=== Перевірка успішності виконання сервісів ==="
           
-          # 1. Перевіряємо, чи завершився сервіс завантаження даних із кодом 0
-          if ! docker compose ps data_load | grep -q "exited (0)"; then
+          # Перевіряємо статус без урахування регістру літер (-i)
+          if ! docker compose ps data_load | grep -qi "exited (0)"; then
             echo "Помилка: Сервіс data_load не завершився успішно або впав!"
             exit 1
           fi
           echo "Сервіс data_load відпрацював успішно."
 
-          # 2. Перевіряємо, чи активний та функціонує веб-інтерфейс Streamlit
-          if ! docker compose ps web | grep -q "running"; then
+          # Перевіряємо статус веб-інтерфейсу без урахування регістру літер (-i)
+          if ! docker compose ps web | grep -qi "running"; then
             echo "Помилка: Web-сервіс Streamlit не запустився або впав!"
             exit 1
           fi
