@@ -29,3 +29,6 @@ runcmd:
   # 4. Запуск мікросервісного Docker Workspace у фоновому режимі
   - cd /home/azureuser/app/open-data-ai-analytics
   - docker compose up --build -d
+
+  - cd /home/azureuser/app/open-data-ai-analytics/monitoring
+  - docker compose -f docker-compose.monitoring.yml up -d
