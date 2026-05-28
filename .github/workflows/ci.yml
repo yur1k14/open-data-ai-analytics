@@ -43,13 +43,18 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
+      - name: Clean Docker System
+        run: |
+          # Повне очищення системи та старих томів перед стартом додатка
+          docker system prune -a --volumes -f
+
       - name: Run Docker Workspace
         run: |
           # Запускаємо мультиконтейнерний стек у фоновому режимі
           docker compose up --build -d
           
-          # Даємо час (20 секунд) батч-контейнерам послідовно відпрацювати розрахунки
-          sleep 20
+          # Даємо час (25 секунд) батч-контейнерам послідовно відпрацювати розрахунки
+          sleep 25
 
       - name: Verify Container Statuses and Metrics
         run: |
@@ -58,7 +63,7 @@ jobs:
           
           echo "=== Перевірка успішності виконання сервісів ==="
           
-          # 1. Перевіряємо, чи завершився сервіс завантаження даних із кодом 0 (exited з успіхом)
+          # 1. Перевіряємо, чи завершився сервіс завантаження даних із кодом 0
           if ! docker compose ps data_load | grep -q "exited (0)"; then
             echo "Помилка: Сервіс data_load не завершився успішно або впав!"
             exit 1
