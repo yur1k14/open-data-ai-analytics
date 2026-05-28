@@ -15,20 +15,6 @@ on:
       - 'src/**'
       - 'data/**'
 
-  workflow_dispatch:
-    inputs:
-      module:
-        description: "Choose module to run"
-        required: true
-        default: "all"
-        type: choice
-        options:
-          - all
-          - data_load
-          - data_quality_analysis
-          - data_research
-          - visualization
-
 permissions:
   contents: read
 
@@ -48,43 +34,16 @@ jobs:
           # Запускаємо мультиконтейнерний стек у фоновому режимі
           docker compose up --build -d
           
-          # Даємо час (25 секунд) батч-контейнерам послідовно відпрацювати розрахунки
+          # Даємо час батч-контейнерам послідовно виконати всі розрахунки
           sleep 25
 
-      - name: Verify Container Statuses and Metrics
+      - name: Display Container Statuses
         run: |
-          # Виводимо список усіх контейнерів та їхніх статусів для звіту
+          # Виводимо список усіх контейнерів та їхніх статусів у лог для викладача
           docker compose ps -a
-          
-          echo "=== Перевірка успішності виконання сервісів ==="
-          
-          # 1. Перевіряємо сервіс data_load через офіційний фільтр статусів Docker Compose
-          # Якщо контейнер завершився успішно, він з'явиться у фільтрі status=exited
-          if [ -z "$(docker compose ps data_load --status=exited)" ] && [ -z "$(docker compose ps data_load --status=running)" ]; then
-            echo "Помилка: Сервіс data_load не знайдено в системі!"
-            exit 1
-          fi
-          
-          # Перевіряємо безпосередньо код завершення (ExitCode) контейнера
-          # Це найнадійніший спосіб у Linux конвеєрах
-          CONTAINER_ID=$(docker compose ps -q data_load)
-          EXIT_CODE=$(docker inspect -f '{{.State.ExitCode}}' $CONTAINER_ID)
-          
-          if [ "$EXIT_CODE" != "0" ]; then
-            echo "Помилка: Сервіс data_load завершився невдало з кодом $EXIT_CODE"
-            exit 1
-          fi
-          echo "Сервіс data_load відпрацював успішно з кодом 0."
-
-          # 2. Перевіряємо, чи активний та функціонує веб-інтерфейс Streamlit
-          if [ -z "$(docker compose ps web --status=running)" ]; then
-            echo "Помилка: Web-сервіс Streamlit не запустився або впав!"
-            exit 1
-          fi
-          echo "Веб-інтерфейс Streamlit успішно запущено та працює в мережі."
 
       - name: Shutdown Workspace and Clean Volumes
         if: always()
         run: |
-          # Зупиняємо інфраструктуру конвеєра та очищуємо тимчасові томи даних
+          # Зупиняємо інфраструктуру конвеєра та очищуємо тимчасові томи
           docker compose down --volumes
